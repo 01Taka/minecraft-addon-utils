@@ -26,7 +26,7 @@ Minecraft Bedrock Script API 開発用 汎用ユーティリティ & クラス�
 }
 ```
 
-ルートまたはサブパスからインポート可能です：
+パッケージルートからインポートして利用します：
 
 ```typescript
 import {
@@ -38,5 +38,7 @@ import {
   MINECRAFT_DRAG,
 } from "addon-utils";
 ```
+ 
+> **Note**: 本パッケージは内部構造の変更による破壊的変更を防ぐため、サブパス（`addon-utils/item` 等）はカプセル化されており、パッケージルート（`"addon-utils"`）からのみインポート可能です。
 
 詳細な各モジュールの利用方法や仕様は、該当バージョンのドキュメント（[docs/v0.1.0.md](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md)）をご参照ください。
