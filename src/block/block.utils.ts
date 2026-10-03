@@ -1,10 +1,11 @@
 import { Block, Direction, type Vector3 } from "@minecraft/server";
 
 /**
- * 指定した面の隣接ブロックを取得します。
+ * 基準ブロックの指定した面に隣接するブロックを取得します。
  *
- * @param block 基準ブロック
- * @param direction 取得する隣接面の方向
+ * @param block 基準となるブロック
+ * @param direction 隣接面を調べる方向 (Direction.Up, Direction.Down, etc.)
+ * @returns 隣接する Block オブジェクト。ワールド境界外や未ロードチャンクなど取得不能な場合は undefined
  */
 export function getAdjacentBlock(
   block: Block,
@@ -29,9 +30,10 @@ export function getAdjacentBlock(
 }
 
 /**
- * 指定した方向（Direction）に対応する単位ベクトルを取得します。
+ * Minecraft の方向列挙値（Direction）に対応する単位ベクトル（長さ1の Vector3）を取得します。
  *
- * @param direction 面の方向
+ * @param direction 変換する方向
+ * @returns 各軸の単位ベクトル { x, y, z }。未知の方向の場合は { x: 0, y: 0, z: 0 }
  */
 export function getDirectionVector(direction: Direction): Vector3 {
   switch (direction) {
@@ -53,9 +55,10 @@ export function getDirectionVector(direction: Direction): Vector3 {
 }
 
 /**
- * 指定した方向の反対方向を取得します。
+ * 指定した方向と正反対の方向（Direction）を取得します。
  *
- * @param direction 元の方向
+ * @param direction 基準となる方向
+ * @returns 反対向きの Direction (例: Up -> Down, North -> South)
  */
 export function getOppositeDirection(direction: Direction): Direction {
   switch (direction) {

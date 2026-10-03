@@ -1,37 +1,61 @@
 import { type Vector3 } from "@minecraft/server";
 
+/**
+ * 目標速度インパルス計算の入力パラメータ
+ */
 export interface CalculateVelocityImpulseParams {
-  /** 目標とする速度 (null または undefined の軸は制御せず速度を維持) */
+  /**
+   * 目標とする速度ベクトル (blocks/tick)。
+   * 各軸で null または undefined を指定した場合は、その軸の外力制御を行わず現在の慣性・加速度を維持します。
+   */
   targetVelocity: { x?: number | null; y?: number | null; z?: number | null };
-  /** 現在のエンティティ速度 (player.getVelocity()) */
+
+  /**
+   * 現在のエンティティ速度 (player.getVelocity())
+   */
   currentVelocity: Vector3;
 
   /**
-   * Y軸の速度維持率 (抗力係数: 0.0〜1.0)
+   * Y軸の速度維持率 (抗力係数: 0.0〜1.0。例: 通常空中 0.98)
    */
   dragY: number;
 
   /**
-   * XZ軸の速度維持率 (抗力係数: 0.0〜1.0)
+   * XZ軸の速度維持率 (抗力係数: 0.0〜1.0。例: 通常空中 0.91)
    */
   dragXZ: number;
 
   /**
-   * 1Tickあたりの落下重力加速度 (相殺する場合の正の数値。重力相殺なしなら 0)
+   * 1Tickあたりの落下重力加速度 (blocks/tick)。
+   * 重力による落下を相殺して水平/上昇制御したい場合は正の数値（通常 0.08）を指定します。相殺しない場合は 0 を指定します。
    */
   gravity: number;
 
-  /** 経過時間（Tick単位。デフォルト: 1.0） */
+  /**
+   * 経過時間（Tick単位。デフォルト: 1.0）
+   */
   deltaTimeTick?: number;
-  /** 追従の鋭さ。nullの場合は即座に目標速度に到達（blend = 1.0）。デフォルト: null */
+
+  /**
+   * 追従の鋭さ・スプリング剛性。
+   * null または未指定の場合は 1Tick 内で即座に目標速度へ到達（blend = 1.0）します。
+   * 正の数値を指定すると、指数減衰補間により滑らかに加速・追従します。
+   */
   stiffness?: number | null;
-  /** 1Tickあたりに加算できる最大速度変化量（リミッター） */
+
+  /**
+   * 1Tickあたりに加算できる最大速度変化量（リミッター）。
+   * 急激な加速や過度な吹っ飛びを防ぎたい場合に指定します。
+   */
   maxAcceleration?: number;
 }
 
 /**
- * 環境の物理特性（抗力・重力）を逆算し、目標速度に到達するためのインパルスを計算する純粋関数。
- * 外部の定数やデフォルト値には一切依存せず、渡された数値のみに基づいて計算します。
+ * 環境の物理特性（抗力・重力）を逆算し、目標速度に到達するためにエンティティへ加えるべきインパルスベクトルを計算します。
+ * 外部の定数やデフォルト値には一切依存せず、引数として渡された数値のみに基づいて計算する純粋関数です。
+ *
+ * @param params 速度目標、現在速度、環境物理定数（dragY, dragXZ, gravity）を含む計算パラメータ
+ * @returns entity.applyImpulse() に渡すためのインパルスベクトル (Vector3)
  */
 export function calculateVelocityImpulse({
   targetVelocity,
@@ -92,20 +116,23 @@ export function calculateVelocityImpulse({
  * 垂直浮上物理の計算に必要な環境パラメータ
  */
 export interface LiftPhysicsEnvironment {
-  /** 1Tickあたりの落下重力加速度 (例: 0.08) */
+  /** 1Tickあたりの自由落下重力加速度 (blocks/tick。Vanilla 通常は 0.08) */
   gravity: number;
-  /** Y軸の速度維持率 (例: 0.98) */
+  /** Y軸の速度維持率 (抗力係数。Vanilla 空中は通常 0.98) */
   dragY: number;
 }
 
+/**
+ * 浮上インパルス計算の結果
+ */
 export interface LiftImpulseResult {
-  /** applyImpulse に渡すインパルスベクトル */
+  /** entity.applyImpulse() に直接渡すインパルスベクトル (X, Z は 0) */
   impulse: Vector3;
-  /** 最高高度（目標高度）に達するまでの経過Tick数 (整数) */
+  /** 最高到達点（目標高度）に達するまでの経過Tick数 (整数) */
   ticksToApex: number;
-  /** 最高高度に達するまでの秒数 (ticks / 20) */
+  /** 最高到達点に達するまでの所要秒数 (ticksToApex / 20) */
   timeToApexSeconds: number;
-  /** 算出された垂直初速度 v0 (blocks/tick) */
+  /** 逆算された垂直初速度 v0 (blocks/tick) */
   initialVelocityY: number;
 }
 
@@ -158,12 +185,13 @@ function solveLiftPhysics(
 }
 
 /**
- * 指定したブロック数分浮き上がるのに必要なインパルスと、最高点到達までの時間を精密に計算します。
- * 環境物理定数（gravity, dragY）は必須引数として明示的に受け取ります。
+ * 指定したブロック数分浮き上がるのに必要な垂直インパルスと、最高点到達までの所要時間を精密に計算します。
+ * ゲームエンジンの離散物理（重力と抗力）を二分探索シミュレーションで逆算するため、非線形な減衰下でも目標高度ピッタリで静止・降下に転じます。
  *
- * @param targetHeight 浮き上がりたいブロック数 (H > 0)
+ * @param targetHeight 浮き上がりたいブロック数・高度差 (H > 0)
  * @param currentVelocity 現在のエンティティのベロシティ (player.getVelocity())
  * @param environment 物理環境設定 (gravity, dragY)
+ * @returns applyImpulse に渡すインパルスおよび最高点到達Tick数を含む LiftImpulseResult
  */
 export function calculateLiftImpulse(
   targetHeight: number,

@@ -1,11 +1,14 @@
 import { world, system, Player, type Vector3 } from "@minecraft/server";
 
+/**
+ * 解決された方向ベクトルおよび正規化情報
+ */
 export interface DirectionData {
-  /** 元のVector3 */
+  /** 元の3次元ベクトル */
   vector: Vector3;
-  /** XZで正規化されたVector3 (yは0、長さは1 ※ゼロ時は0) */
+  /** XZ平面（水平方向）で正規化された単位ベクトル (yは常に0、長さは1。水平長が0の場合は { x: 0, y: 0, z: 0 }) */
   normalizedXZ: Vector3;
-  /** 水平方向(XZ平面)の長さ・ノルム */
+  /** 水平方向(XZ平面)の長さ・ノルム (Math.hypot(x, z)) */
   horizontalLength: number;
 }
 
@@ -22,8 +25,8 @@ function createDirectionData(vector: Vector3): DirectionData {
 }
 
 /**
- * プレイヤーの移動方向・入力方向・視線方向を解決し、同一Tick内での再計算をキャッシュするマネージャー。
- * プレイヤー退出時の自動メモリ解放にも対応しています。
+ * プレイヤーの移動方向・入力方向・視線方向を解決し、同一Tick内での重複計算をキャッシュするマネージャー。
+ * プレイヤー切断（world.afterEvents.playerLeave）時の自動メモリ解放にも対応しています。
  */
 export class PlayerDirectionResolver {
   // --------------------------------------------------
@@ -43,7 +46,10 @@ export class PlayerDirectionResolver {
   }
 
   /**
-   * プレイヤーに対応するリゾルバーを取得（または生成）します。
+   * プレイヤーに対応するリゾルバーインスタンスを取得（または新規生成）します。
+   *
+   * @param player 対象のプレイヤー
+   * @returns 該当プレイヤーの PlayerDirectionResolver インスタンス
    */
   public static get(player: Player): PlayerDirectionResolver {
     let resolver = this.instances.get(player.id);
@@ -72,7 +78,7 @@ export class PlayerDirectionResolver {
   }
 
   /**
-   * Tickが変わっていれば自動でキャッシュを破棄する
+   * 現在のゲームTickを検査し、Tickが進行していればキャッシュを破棄します。
    */
   private checkTick(): void {
     const currentTick = system.currentTick;
@@ -85,7 +91,9 @@ export class PlayerDirectionResolver {
     }
   }
 
-  /** 移動方向（物理的な速度 Velocity） */
+  /**
+   * 物理的な移動速度（Velocity）情報。同一Tick内ではキャッシュ値を返します。
+   */
   public get movement(): DirectionData {
     this.checkTick();
     if (!this._movement) {
@@ -94,19 +102,23 @@ export class PlayerDirectionResolver {
     return this._movement;
   }
 
-  /** ローカル入力方向（一般的な3Dローカル座標系: x=右(+)/左(-), z=前(+)/後(-)） */
+  /**
+   * プレイヤー自身のローカル座標系におけるキー入力方向（一般的な3D系: x=右(+)/左(-), z=前(+)/後(-)）。
+   * 同一Tick内ではキャッシュ値を返します。
+   */
   public get input(): DirectionData {
     this.checkTick();
     if (!this._input) {
       const raw = this.player.inputInfo.getMovementVector();
-      // Minecraft の raw.x は左が正(+)のため、反転して右を正(+)にする
+      // Minecraft の raw.x は「左が正(+)」のため、反転して「右を正(+)」にする
       this._input = createDirectionData({ x: -raw.x, y: 0, z: raw.y });
     }
     return this._input;
   }
 
   /**
-   * ワールド基準の入力方向（プレイヤーの向きを考慮した実際のワールド進行方向）
+   * プレイヤーの向いている水平角（Yaw）とキー入力を合成した、実際のワールド空間での進行希望方向。
+   * 入力がない場合はゼロベクトルを返します。同一Tick内ではキャッシュ値を返します。
    */
   public get worldInput(): DirectionData {
     this.checkTick();
@@ -118,7 +130,6 @@ export class PlayerDirectionResolver {
         this._worldInput = createDirectionData({ x: 0, y: 0, z: 0 });
       } else {
         // プレイヤーの水平角度 (Yaw) からワールドの前方・右方単位ベクトルを算出
-        // ※真上・真下を向いていても水平角度は正確に取得できます
         const yawRad = (this.player.getRotation().y * Math.PI) / 180;
         const forwardX = -Math.sin(yawRad);
         const forwardZ = Math.cos(yawRad);
@@ -140,7 +151,9 @@ export class PlayerDirectionResolver {
     return this._worldInput;
   }
 
-  /** 視線方向（向いている向きの単位ベクトル） */
+  /**
+   * プレイヤーの視線方向（ViewDirection）のベクトル情報。同一Tick内ではキャッシュ値を返します。
+   */
   public get view(): DirectionData {
     this.checkTick();
     if (!this._view) {

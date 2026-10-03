@@ -1,5 +1,8 @@
 import { Player, CommandPermissionLevel } from "@minecraft/server";
 
+/**
+ * プレイヤー管理者判定のカスタマイズオプション
+ */
 export interface IsPlayerAdminOptions {
   /**
    * 管理者とみなすタグの配列 (デフォルト: ["admin", "op"])
@@ -10,16 +13,18 @@ export interface IsPlayerAdminOptions {
    */
   allowTagCheck?: boolean;
   /**
-   * 管理者とみなす最小のコマンド権限レベル (デフォルト: CommandPermissionLevel.Any より大きい)
+   * 管理者とみなす最小のコマンド権限レベル (デフォルト: CommandPermissionLevel.Any より大きいレベル)
    */
   minPermissionLevel?: CommandPermissionLevel;
 }
 
 /**
  * プレイヤーが管理者権限（OP権限、または指定された管理者タグ）を保持しているかを判定します。
+ * 個人プレイ・マルチプレイ共通で安全に動作し、無効なプレイヤー（切断済み等）は常に false を返します。
  *
- * @param player 判定対象プレイヤー
+ * @param player 判定対象のプレイヤー
  * @param options オプション設定（判定対象タグや権限レベルのカスタマイズ）
+ * @returns 管理者権限を保持している場合は true、一般プレイヤーまたは無効な場合は false
  */
 export function isPlayerAdmin(
   player: Player,

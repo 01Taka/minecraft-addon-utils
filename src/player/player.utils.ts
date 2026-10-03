@@ -3,10 +3,11 @@ import type { AABB } from "../math/geometry.utils";
 
 /**
  * プレイヤーの物理ボタン入力状態を判定します。
+ * 低バージョンや環境差異に対応し、安全に判定します。
  *
- * @param player 対象プレイヤー
+ * @param player 対象のプレイヤー
  * @param buttonName 判定したいボタン名 (例: "Sneak", "Jump", "Sprint")
- * @returns 物理キーが押下されているか
+ * @returns 物理キーが押下されている場合は true、それ以外は false
  */
 export function isInputButtonPressed(
   player: Player,
@@ -34,17 +35,20 @@ export function isInputButtonPressed(
 
 /**
  * プレイヤーが物理的にスニーク（シフト）キーを押下しているかを判定します。
- * 低所や匍匐（クロール）状態での自動スニークによる誤検知を防止します。
+ * 1ブロック隙間への進入時や匍匐（クロール）時におけるゲームエンジンの自動スニークによる誤検知を防止します。
+ *
+ * @param player 対象のプレイヤー
+ * @returns プレイヤー自身がスニークボタンを押している場合は true、それ以外は false
  */
 export function isSneakButtonPressed(player: Player): boolean {
   return isInputButtonPressed(player, "Sneak");
 }
 
 /**
- * プレイヤーの移動入力が正面に対して何ラジアン傾いているかを返します。
+ * プレイヤーの移動入力が正面（前進方向）に対して何ラジアン傾いているかを返します。
  *
  * @param playerOrVector Player オブジェクト、または Vector2 ({ x, y })
- * @returns 前方を 0 としたラジアン値（-π 〜 +π）。入力がない（静止状態）の場合は null。
+ * @returns 前進方向を 0 とし、右回りを正(+)、左回りを負(-)としたラジアン値 (-π 〜 +π)。入力がない（静止状態）の場合は null
  */
 export function getMovementInputAngle(
   playerOrVector: Player | Vector2,
@@ -58,13 +62,16 @@ export function getMovementInputAngle(
     return null;
   }
 
-  // Minecraft の raw.x は左が正(+)、右が負(-)のため、-vec.x で反転して「右を正(+)、左を負(-)」として計算
+  // Minecraft の raw.x は「左が正(+)、右が負(-)」のため、-vec.x で反転して「右を正(+)、左を負(-)」として計算
   return Math.atan2(-vec.x, vec.y);
 }
 
 /**
- * プレイヤーのワールド座標系 AABB（境界ボックス）を取得します。
- * スニーク、泳ぎ、エリトラ滑空などの姿勢変化に対応します。
+ * プレイヤーの現在のワールド座標系 AABB（バウンディングボックス）を取得します。
+ * 通常立ち状態だけでなく、スニーク、水泳、エリトラ滑空などの姿勢変化に伴うヒットボックスの伸縮に対応しています。
+ *
+ * @param player 対象のプレイヤー
+ * @returns 最小座標 (min) と最大座標 (max) を含む AABB
  */
 export function getPlayerAABB(player: Player): AABB {
   const rawAABB = player.getAABB();
