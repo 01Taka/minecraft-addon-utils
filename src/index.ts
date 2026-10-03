@@ -8,3 +8,4 @@ export * from "./block";
 export * from "./state";
 export * from "./player";
 export * from "./math";
+export * from "./physics";
