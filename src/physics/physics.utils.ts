@@ -1,99 +1,57 @@
 import { type Vector3 } from "@minecraft/server";
 
-/** 頻繁に使われる抵抗（流体・粘性）のプリセットキー */
-export type DragPreset =
-  | "air" // 通常空中 (Y: 0.98, XZ: 0.91)
-  | "water" // 水中 (Y: 0.80, XZ: 0.80)
-  | "lava" // 溶岩 (Y: 0.50, XZ: 0.50)
-  | "cobweb" // クモの巣 (Y: 0.05, XZ: 0.25)
-  | "honey" // ハチミツ壁 (Y: 0.20, XZ: 0.20)
-  | "ground" // 地上摩擦 (XZ: 0.60)
-  | "none"; // 抵抗なし (1.00)
-
-/** 各プリセットの物理数値マップ */
-export const DRAG_PRESETS: Record<DragPreset, { y: number; xz: number }> = {
-  air: { y: 0.98, xz: 0.91 },
-  water: { y: 0.8, xz: 0.8 },
-  lava: { y: 0.5, xz: 0.5 },
-  cobweb: { y: 0.05, xz: 0.25 },
-  honey: { y: 0.2, xz: 0.2 },
-  ground: { y: 0.98, xz: 0.546 }, // 地上実効保持率 (0.6 * 0.91)
-  none: { y: 1.0, xz: 1.0 },
-};
-
-/** number または 文字列リテラルから実際の抵抗数値を解決するヘルパー */
-function resolveDragValue(
-  value: number | DragPreset | undefined,
-  axis: "y" | "xz",
-): number {
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "string" && value in DRAG_PRESETS) {
-    return DRAG_PRESETS[value][axis];
-  }
-  // 指定なし（undefined）時のデフォルト値
-  return axis === "y" ? DRAG_PRESETS.air.y : DRAG_PRESETS.air.xz;
-}
-
 export interface CalculateVelocityImpulseParams {
   /** 目標とする速度 (null または undefined の軸は制御せず速度を維持) */
   target: { x?: number | null; y?: number | null; z?: number | null };
   /** 現在のエンティティ速度 (player.getVelocity()) */
   current: Vector3;
+
+  /**
+   * Y軸の速度維持率 (抗力係数: 0.0〜1.0)
+   */
+  dragY: number;
+
+  /**
+   * XZ軸の速度維持率 (抗力係数: 0.0〜1.0)
+   */
+  dragXZ: number;
+
+  /**
+   * 1Tickあたりの落下重力加速度 (相殺する場合の正の数値。重力相殺なしなら 0)
+   */
+  gravity: number;
+
   /** 経過時間（Tick単位。デフォルト: 1.0） */
   deltaTimeTick?: number;
   /** 追従の鋭さ。nullの場合は即座に目標速度に到達（blend = 1.0）。デフォルト: null */
   stiffness?: number | null;
   /** 1Tickあたりに加算できる最大速度変化量（リミッター） */
   maxAcceleration?: number;
-
-  // --- 物理パラメータ ---
-  /**
-   * 通常の落下重力（0.08 blocks/tick）を相殺するかどうか。
-   * デフォルト: true
-   */
-  gravity?: boolean;
-
-  /**
-   * Y軸の速度維持率（数値 または プリセット文字列）。
-   * デフォルト: "air" (0.98)
-   */
-  dragY?: number | DragPreset;
-
-  /**
-   * XZ軸の速度維持率（数値 または プリセット文字列）。
-   * デフォルト: "air" (0.91)
-   */
-  dragXZ?: number | DragPreset;
 }
 
 /**
- * 環境の物理特性を逆算し、目標速度に到達するためのインパルスを計算する汎用関数
+ * 環境の物理特性（抗力・重力）を逆算し、目標速度に到達するためのインパルスを計算する純粋関数。
+ * 外部の定数やデフォルト値には一切依存せず、渡された数値のみに基づいて計算します。
  */
 export function calculateVelocityImpulse({
   target,
   current,
+  dragY,
+  dragXZ,
+  gravity,
   deltaTimeTick = 1.0,
   stiffness = null,
   maxAcceleration,
-  gravity = true,
-  dragY = "air",
-  dragXZ = "air",
 }: CalculateVelocityImpulseParams): Vector3 {
-  const GRAVITY_CONSTANT = 0.08;
-  const effectiveGravity = gravity ? GRAVITY_CONSTANT : 0.0;
-
-  // 文字列または数値を実際の係数に解決し、ゼロ除算を防止
-  const finalDragY = Math.max(0.0001, resolveDragValue(dragY, "y"));
-  const finalDragXZ = Math.max(0.0001, resolveDragValue(dragXZ, "xz"));
+  const finalDragY = Math.max(0.0001, dragY);
+  const finalDragXZ = Math.max(0.0001, dragXZ);
 
   // 物理エンジン適用後に目標速度ピッタリになるよう逆算
   let adjustedTargetX =
     target.x !== null && target.x !== undefined ? target.x / finalDragXZ : null;
   let adjustedTargetY =
     target.y !== null && target.y !== undefined
-      ? target.y / finalDragY + effectiveGravity
+      ? target.y / finalDragY + gravity
       : null;
   let adjustedTargetZ =
     target.z !== null && target.z !== undefined ? target.z / finalDragXZ : null;
@@ -126,6 +84,16 @@ export function calculateVelocityImpulse({
   return { x: impulseX, y: impulseY, z: impulseZ };
 }
 
+/**
+ * 垂直浮上物理の計算に必要な環境パラメータ
+ */
+export interface LiftPhysicsEnvironment {
+  /** 1Tickあたりの落下重力加速度 (例: 0.08) */
+  gravity: number;
+  /** Y軸の速度維持率 (例: 0.98) */
+  dragY: number;
+}
+
 export interface LiftImpulseResult {
   /** applyImpulse に渡すインパルスベクトル */
   impulse: Vector3;
@@ -138,14 +106,15 @@ export interface LiftImpulseResult {
 }
 
 /**
- * 目標高度に必要な初速度と、最高点に達するまでのTick数を二分探索シミュレーションで逆算します。
+ * 指定した環境物理のもとで、目標高度に必要な初速度と最高点到達Tick数を二分探索シミュレーションで逆算します。
  */
-function solveLiftPhysics(targetHeight: number): {
-  initialVy: number;
-  ticks: number;
-} {
+function solveLiftPhysics(
+  targetHeight: number,
+  environment: LiftPhysicsEnvironment,
+): { initialVy: number; ticks: number } {
   if (targetHeight <= 0) return { initialVy: 0, ticks: 0 };
 
+  const { gravity, dragY } = environment;
   let low = 0;
   let high = targetHeight * 0.8 + 2.0;
 
@@ -156,10 +125,10 @@ function solveLiftPhysics(targetHeight: number): {
     let h = 0;
 
     while (true) {
-      v -= 0.08;
+      v -= gravity;
       if (v <= 0) break;
       h += v;
-      v *= 0.98;
+      v *= dragY;
     }
 
     if (h < targetHeight) {
@@ -175,10 +144,10 @@ function solveLiftPhysics(targetHeight: number): {
   let v = initialVy;
   let ticks = 0;
   while (true) {
-    v -= 0.08;
+    v -= gravity;
     if (v <= 0) break; // 上昇が止まり落下に転じた瞬間
     ticks++;
-    v *= 0.98;
+    v *= dragY;
   }
 
   return { initialVy, ticks };
@@ -186,13 +155,16 @@ function solveLiftPhysics(targetHeight: number): {
 
 /**
  * 指定したブロック数分浮き上がるのに必要なインパルスと、最高点到達までの時間を精密に計算します。
+ * 環境物理定数（gravity, dragY）は必須引数として明示的に受け取ります。
  *
  * @param targetHeight 浮き上がりたいブロック数 (H > 0)
  * @param currentVelocity 現在のエンティティのベロシティ (player.getVelocity())
+ * @param environment 物理環境設定 (gravity, dragY)
  */
 export function calculateLiftImpulseAccurate(
   targetHeight: number,
-  currentVelocity: Vector3 = { x: 0, y: 0, z: 0 },
+  currentVelocity: Vector3,
+  environment: LiftPhysicsEnvironment,
 ): LiftImpulseResult {
   if (targetHeight <= 0) {
     return {
@@ -204,7 +176,7 @@ export function calculateLiftImpulseAccurate(
   }
 
   // 1. 初速度とTick数を計算
-  const { initialVy, ticks } = solveLiftPhysics(targetHeight);
+  const { initialVy, ticks } = solveLiftPhysics(targetHeight, environment);
 
   // 2. 現在の速度との差分をインパルスとする
   const impulseY = initialVy - currentVelocity.y;
@@ -218,46 +190,27 @@ export function calculateLiftImpulseAccurate(
 }
 
 /**
- * 指定したブロック数分浮き上がるのに必要なインパルスベクトルを計算します（高速な近似式版）。
- * 近似式: v0 ≈ √(0.165 * H) + 0.05 * H^0.7
- *
- * @param targetHeight 浮き上がりたいブロック数 (H > 0)
- * @param currentVelocity 現在のエンティティのベロシティ (player.getVelocity())
- */
-export function calculateLiftImpulse(
-  targetHeight: number,
-  currentVelocity: Vector3 = { x: 0, y: 0, z: 0 },
-): Vector3 {
-  if (targetHeight <= 0) {
-    return { x: 0, y: 0, z: 0 };
-  }
-
-  const targetVy =
-    Math.sqrt(0.165 * targetHeight) + 0.05 * Math.pow(targetHeight, 0.7);
-  const impulseY = targetVy - currentVelocity.y;
-
-  return {
-    x: 0,
-    y: impulseY,
-    z: 0,
-  };
-}
-
-/**
  * nティックかけて指定した高さ(H)分上昇するのに必要な初速度(インパルス)を計算します。
  *
  * @param nTick 上昇にかけるTick数 (n >= 1)
- * @param targetHeight 上昇したいブロック数 (デフォルト: 1.0)
+ * @param targetHeight 上昇したいブロック数
+ * @param environment 物理環境設定 (gravity, dragY)
  */
 export function calculateImpulseForNTicks(
   nTick: number,
-  targetHeight: number = 1.0,
+  targetHeight: number,
+  environment: LiftPhysicsEnvironment,
 ): number {
   if (nTick <= 0) return 0;
 
-  // v0 = (0.02 * H + 0.08 * n) / (1 - 0.98^n) - 3.92
-  const numerator = 0.02 * targetHeight + 0.08 * nTick;
-  const denominator = 1.0 - Math.pow(0.98, nTick);
+  const { gravity, dragY } = environment;
+  const decay = 1.0 - dragY;
+  if (Math.abs(decay) < 1e-6) {
+    return (targetHeight + 0.5 * gravity * nTick * nTick) / nTick;
+  }
 
-  return numerator / denominator - 3.92;
+  const numerator = decay * targetHeight + gravity * nTick;
+  const denominator = 1.0 - Math.pow(dragY, nTick);
+
+  return numerator / denominator - gravity / decay;
 }
