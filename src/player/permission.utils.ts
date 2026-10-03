@@ -1,22 +1,7 @@
 import { Player, CommandPermissionLevel } from "@minecraft/server";
+import type { IsPlayerAdminOptions } from "./permission.types";
 
-/**
- * プレイヤー管理者判定のカスタマイズオプション
- */
-export interface IsPlayerAdminOptions {
-  /**
-   * 管理者とみなすタグの配列 (デフォルト: ["admin", "op"])
-   */
-  adminTags?: readonly string[];
-  /**
-   * タグの保持による権限判定を行うか (デフォルト: true)
-   */
-  allowTagCheck?: boolean;
-  /**
-   * 管理者とみなす最小のコマンド権限レベル (デフォルト: CommandPermissionLevel.Any より大きいレベル)
-   */
-  minPermissionLevel?: CommandPermissionLevel;
-}
+export type { IsPlayerAdminOptions };
 
 /**
  * プレイヤーが管理者権限（OP権限、または指定された管理者タグ）を保持しているかを判定します。

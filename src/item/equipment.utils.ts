@@ -7,16 +7,9 @@ import {
   ItemDurabilityComponent,
   EntityEquippableComponent,
 } from "@minecraft/server";
+import type { ItemDurability } from "./equipment.types";
 
-/**
- * アイテムの耐久度情報
- */
-export interface ItemDurability {
-  /** 現在の消耗・被ダメージ値（耐久度の減り具合） */
-  damage: number;
-  /** 最大耐久値 */
-  maxDurability: number;
-}
+export type { ItemDurability };
 
 /**
  * プレイヤーの装備コンポーネント（minecraft:equippable）を取得します。
@@ -98,7 +91,7 @@ export function isHoldingItem(
  *
  * @param item 対象のアイテム（undefined の場合は 0 を返します）
  * @param enchantment 取得したいエンチャントのIDまたは EnchantmentType (例: "unbreaking", "sharpness")
- * @returns エンチャントのレベル (1以上の整数)。エンチャントが付与されていない、無効、またはアイテムが undefined の場合は 0
+ * @returns エンチャントレベル (1以上の整数)。エンチャントが付与されていない、無効、またはアイテムが undefined の場合は 0
  */
 export function getEnchantmentLevel(
   item: ItemStack | undefined,
