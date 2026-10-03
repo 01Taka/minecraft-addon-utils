@@ -1,22 +1,31 @@
 # addon-utils
 
-Minecraft Bedrock Script API 開発用 汎用ユーティリティ & クラスパッケージ。
+General-purpose utilities and classes for Minecraft Bedrock Script API addon development.
 
-各アドオンで頻出するボイラープレートを排除し、純粋関数および単一責任の原則（SRP）に基づいて設計されています。
-
----
-
-## バージョン別 API リファレンス
-
-本パッケージの外部公開されているすべての型・関数・クラス・定数の詳細仕様（シグネチャ、引数、戻り値）は、バージョンごとに `docs/` 配下にまとめられています。
-
-- [**docs/v0.1.0.md**](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md): 初期安定版（アイテム、ブロック面、状態管理、プレイヤー入力/方向リゾルバー、幾何計算、物理インパルス逆算）
+Designed to eliminate recurring boilerplate across addons, built strictly with pure functions and the Single Responsibility Principle (SRP).
 
 ---
 
-## 導入方法
+## Language / 言語
 
-各アドオンの `package.json` にて、Git タグを指定してインストールします。
+- [日本語 (README.ja.md)](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/README.ja.md)
+- [English (README.md)](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/README.md)
+
+---
+
+## Versioned API Reference
+
+Detailed specifications (signatures, parameters, return types, edge cases, and code examples) for all externally available types, functions, classes, and constants are documented under `docs/` by version:
+
+- [**docs/v0.1.0.md**](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md): Initial Stable Release (Item/Equipment, Block/Direction, Player State Management, Player Input & Direction Resolver, Math/Geometry, Physics Impulse & Lift Solvers)
+  - English: [docs/v0.1.0.md](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md)
+  - 日本語: [docs/v0.1.0.ja.md](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.ja.md)
+
+---
+
+## Installation
+
+Install in your addon's `package.json` pointing to the GitHub repository and release tag:
 
 ```json
 {
@@ -26,13 +35,13 @@ Minecraft Bedrock Script API 開発用 汎用ユーティリティ & クラス�
 }
 ```
 
-または：
+Or using pnpm:
 
 ```bash
 pnpm add github:01Taka/minecraft-addon-utils#v0.1.0
 ```
 
-パッケージルートからインポートして利用します：
+Import directly from the package root:
 
 ```typescript
 import {
@@ -44,7 +53,7 @@ import {
   MINECRAFT_DRAG,
 } from "addon-utils";
 ```
- 
-> **Note**: 本パッケージは内部構造の変更による破壊的変更を防ぐため、サブパス（`addon-utils/item` 等）はカプセル化されており、パッケージルート（`"addon-utils"`）からのみインポート可能です。
 
-詳細な各モジュールの利用方法や仕様は、該当バージョンのドキュメント（[docs/v0.1.0.md](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md)）をご参照ください。
+> **Note**: To prevent breaking changes when internal file layouts change, subpaths (such as `addon-utils/item`) are encapsulated. Always import directly from `"addon-utils"`.
+
+For comprehensive usage and module specifications, please refer to the versioned reference ([docs/v0.1.0.md](file:///c:/ai/projects/under-development/minecraft-addons/addon-utils/docs/v0.1.0.md)).
