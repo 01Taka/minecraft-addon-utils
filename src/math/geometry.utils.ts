@@ -1,4 +1,4 @@
-import { Block, Player, type Vector3 } from "@minecraft/server";
+import type { Vector3 } from "@minecraft/server";
 
 export type Vec2 = { x: number; z: number };
 
@@ -49,7 +49,7 @@ export interface AABBDistanceResult {
 /**
  * 3次元空間の任意の点とAABBバウンディングボックス間の距離を計算します。
  *
- * @param point 測定対象の点（プレイヤー位置など）
+ * @param point 測定対象の点
  * @param aabb 測定対象のAABB { min, max }
  * @returns 水平距離、垂直距離、直線距離を含む AABBDistanceResult
  */
@@ -97,50 +97,4 @@ export function getNearestFaceDirection(vec: Vec2): Vector3 {
   } else {
     return { x: 0, y: 0, z: Math.sign(vec.z) };
   }
-}
-
-/**
- * プレイヤーのワールド座標系 AABB（境界ボックス）を取得します。
- * スニーク、泳ぎ、エリトラ滑空などの姿勢変化に対応します。
- */
-export function getPlayerAABB(player: Player): AABB {
-  const rawAABB = player.getAABB();
-  const { center, extent } = rawAABB;
-  return {
-    min: {
-      x: center.x - extent.x,
-      y: center.y - extent.y,
-      z: center.z - extent.z,
-    },
-    max: {
-      x: center.x + extent.x,
-      y: center.y + extent.y,
-      z: center.z + extent.z,
-    },
-  };
-}
-
-/**
- * プレイヤー（足元位置）と対象ブロックのAABBとの距離を計算します。
- */
-export function calculatePlayerToBlockDistance(
-  player: Player,
-  block: Block | Vector3,
-): AABBDistanceResult {
-  const blockLoc = "location" in block ? block.location : block;
-
-  const aabb: AABB = {
-    min: {
-      x: blockLoc.x,
-      y: blockLoc.y,
-      z: blockLoc.z,
-    },
-    max: {
-      x: blockLoc.x + 1,
-      y: blockLoc.y + 1,
-      z: blockLoc.z + 1,
-    },
-  };
-
-  return calculatePointToAABBDistance(player.location, aabb);
 }

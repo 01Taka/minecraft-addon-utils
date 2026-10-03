@@ -113,29 +113,5 @@ export function getItemDurability(item: ItemStack | undefined): {
   }
 }
 
-/**
- * メインハンド装備および主要なエンチャント・耐久値情報をまとめて取得します。
- */
-export function getMainHandItemInfo(player: Player) {
-  const equippable = getEquippable(player);
-  if (!equippable) return null;
 
-  const mainhandItem = equippable.getEquipment(EquipmentSlot.Mainhand);
-  if (!mainhandItem) return null;
 
-  const durability = getItemDurability(mainhandItem);
-  const unbreaking = getEnchantmentLevel(mainhandItem, "unbreaking");
-  const fortune = getEnchantmentLevel(mainhandItem, "fortune");
-  const silkTouch = getEnchantmentLevel(mainhandItem, "silk_touch");
-
-  return {
-    equippable,
-    mainhandItem,
-    durability,
-    enchant: {
-      unbreaking,
-      fortune,
-      silkTouch,
-    },
-  };
-}

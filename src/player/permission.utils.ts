@@ -1,32 +1,61 @@
 import { Player, CommandPermissionLevel } from "@minecraft/server";
 
+export interface IsPlayerAdminOptions {
+  /**
+   * 管理者とみなすタグの配列 (デフォルト: ["admin", "op"])
+   */
+  adminTags?: readonly string[];
+  /**
+   * タグの保持による権限判定を行うか (デフォルト: true)
+   */
+  allowTagCheck?: boolean;
+  /**
+   * 管理者とみなす最小のコマンド権限レベル (デフォルト: CommandPermissionLevel.Any より大きい)
+   */
+  minPermissionLevel?: CommandPermissionLevel;
+}
+
 /**
- * プレイヤーが管理者権限（OP権限、または "admin" / "op" タグ）を保持しているかを判定します。
- * 個人プレイ・マルチプレイ共通で安全に判定します。
+ * プレイヤーが管理者権限（OP権限、または指定された管理者タグ）を保持しているかを判定します。
+ *
+ * @param player 判定対象プレイヤー
+ * @param options オプション設定（判定対象タグや権限レベルのカスタマイズ）
  */
-export function isPlayerAdmin(player: Player): boolean {
+export function isPlayerAdmin(
+  player: Player,
+  options?: IsPlayerAdminOptions,
+): boolean {
   if (!player.isValid) return false;
 
+  const minLevel = options?.minPermissionLevel ?? CommandPermissionLevel.Any;
+  const allowTag = options?.allowTagCheck ?? true;
+  const adminTags = options?.adminTags ?? ["admin", "op"];
+
+  // 1. commandPermissionLevel 判定
   try {
     if (
       typeof player.commandPermissionLevel === "number" &&
-      player.commandPermissionLevel > CommandPermissionLevel.Any
+      player.commandPermissionLevel > minLevel
     ) {
       return true;
     }
   } catch {}
 
+  // 2. player.isOp() 判定（環境によって利用可能な場合）
   try {
     if (typeof (player as any).isOp === "function" && (player as any).isOp()) {
       return true;
     }
   } catch {}
 
-  try {
-    if (player.hasTag("admin") || player.hasTag("op")) {
-      return true;
+  // 3. タグ判定
+  if (allowTag && adminTags.length > 0) {
+    for (const tag of adminTags) {
+      if (player.hasTag(tag)) {
+        return true;
+      }
     }
-  } catch {}
+  }
 
   return false;
 }

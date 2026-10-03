@@ -1,1 +1,1 @@
-export * from "./face-collision";
+export * from "./block.utils";
