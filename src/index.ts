@@ -1,8 +1,10 @@
 /**
- * addon-utils エントリポイント
- * 各アドオンで共通利用するモジュールやクラスをここからエクスポートします。
+ * addon-utils
+ * Minecraft Bedrock アドオン開発用 汎用ユーティリティ & クラスパッケージ
  */
 
-// 例:
-// export * from "./classes/...";
-// export * from "./utils/...";
+export * from "./item";
+export * from "./block";
+export * from "./state";
+export * from "./player";
+export * from "./math";
