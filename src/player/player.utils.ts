@@ -43,12 +43,16 @@ export function isSneakButtonPressed(player: Player): boolean {
 /**
  * プレイヤーの移動入力が正面に対して何ラジアン傾いているかを返します。
  *
- * @param target Player オブジェクト、または Vector2 ({ x, y })
+ * @param playerOrVector Player オブジェクト、または Vector2 ({ x, y })
  * @returns 前方を 0 としたラジアン値（-π 〜 +π）。入力がない（静止状態）の場合は null。
  */
-export function getMovementInputAngle(target: Player | Vector2): number | null {
+export function getMovementInputAngle(
+  playerOrVector: Player | Vector2,
+): number | null {
   const vec: Vector2 =
-    target instanceof Player ? target.inputInfo.getMovementVector() : target;
+    playerOrVector instanceof Player
+      ? playerOrVector.inputInfo.getMovementVector()
+      : playerOrVector;
 
   if (vec.x === 0 && vec.y === 0) {
     return null;

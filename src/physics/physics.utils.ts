@@ -2,9 +2,9 @@ import { type Vector3 } from "@minecraft/server";
 
 export interface CalculateVelocityImpulseParams {
   /** 目標とする速度 (null または undefined の軸は制御せず速度を維持) */
-  target: { x?: number | null; y?: number | null; z?: number | null };
+  targetVelocity: { x?: number | null; y?: number | null; z?: number | null };
   /** 現在のエンティティ速度 (player.getVelocity()) */
-  current: Vector3;
+  currentVelocity: Vector3;
 
   /**
    * Y軸の速度維持率 (抗力係数: 0.0〜1.0)
@@ -34,8 +34,8 @@ export interface CalculateVelocityImpulseParams {
  * 外部の定数やデフォルト値には一切依存せず、渡された数値のみに基づいて計算します。
  */
 export function calculateVelocityImpulse({
-  target,
-  current,
+  targetVelocity,
+  currentVelocity,
   dragY,
   dragXZ,
   gravity,
@@ -48,13 +48,17 @@ export function calculateVelocityImpulse({
 
   // 物理エンジン適用後に目標速度ピッタリになるよう逆算
   let adjustedTargetX =
-    target.x !== null && target.x !== undefined ? target.x / finalDragXZ : null;
+    targetVelocity.x !== null && targetVelocity.x !== undefined
+      ? targetVelocity.x / finalDragXZ
+      : null;
   let adjustedTargetY =
-    target.y !== null && target.y !== undefined
-      ? target.y / finalDragY + gravity
+    targetVelocity.y !== null && targetVelocity.y !== undefined
+      ? targetVelocity.y / finalDragY + gravity
       : null;
   let adjustedTargetZ =
-    target.z !== null && target.z !== undefined ? target.z / finalDragXZ : null;
+    targetVelocity.z !== null && targetVelocity.z !== undefined
+      ? targetVelocity.z / finalDragXZ
+      : null;
 
   // deltaTime を考慮した追従率（指数減衰補間）。stiffness が null の場合は 1.0（即座に到達）
   const blend =
@@ -64,11 +68,11 @@ export function calculateVelocityImpulse({
 
   // 各軸の差分に追従率を乗算
   let impulseX =
-    (adjustedTargetX !== null ? adjustedTargetX - current.x : 0) * blend;
+    (adjustedTargetX !== null ? adjustedTargetX - currentVelocity.x : 0) * blend;
   let impulseY =
-    (adjustedTargetY !== null ? adjustedTargetY - current.y : 0) * blend;
+    (adjustedTargetY !== null ? adjustedTargetY - currentVelocity.y : 0) * blend;
   let impulseZ =
-    (adjustedTargetZ !== null ? adjustedTargetZ - current.z : 0) * blend;
+    (adjustedTargetZ !== null ? adjustedTargetZ - currentVelocity.z : 0) * blend;
 
   // 最大加速度（リミッター）の適用
   if (maxAcceleration !== undefined && maxAcceleration > 0) {
@@ -161,7 +165,7 @@ function solveLiftPhysics(
  * @param currentVelocity 現在のエンティティのベロシティ (player.getVelocity())
  * @param environment 物理環境設定 (gravity, dragY)
  */
-export function calculateLiftImpulseAccurate(
+export function calculateLiftImpulse(
   targetHeight: number,
   currentVelocity: Vector3,
   environment: LiftPhysicsEnvironment,
@@ -188,4 +192,3 @@ export function calculateLiftImpulseAccurate(
     initialVelocityY: initialVy,
   };
 }
-

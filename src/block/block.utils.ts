@@ -2,12 +2,15 @@ import { Block, Direction, type Vector3 } from "@minecraft/server";
 
 /**
  * 指定した面の隣接ブロックを取得します。
+ *
+ * @param block 基準ブロック
+ * @param direction 取得する隣接面の方向
  */
 export function getAdjacentBlock(
   block: Block,
-  face: Direction,
+  direction: Direction,
 ): Block | undefined {
-  switch (face) {
+  switch (direction) {
     case Direction.Up:
       return block.above();
     case Direction.Down:
@@ -26,10 +29,12 @@ export function getAdjacentBlock(
 }
 
 /**
- * 方向（Direction）に対応する単位ベクトルを取得します。
+ * 指定した方向（Direction）に対応する単位ベクトルを取得します。
+ *
+ * @param direction 面の方向
  */
-export function directionToVector(face: Direction): Vector3 {
-  switch (face) {
+export function getDirectionVector(direction: Direction): Vector3 {
+  switch (direction) {
     case Direction.Up:
       return { x: 0, y: 1, z: 0 };
     case Direction.Down:
@@ -48,10 +53,12 @@ export function directionToVector(face: Direction): Vector3 {
 }
 
 /**
- * 指定した面の反対面を取得します。
+ * 指定した方向の反対方向を取得します。
+ *
+ * @param direction 元の方向
  */
-export function getOppositeFace(face: Direction): Direction {
-  switch (face) {
+export function getOppositeDirection(direction: Direction): Direction {
+  switch (direction) {
     case Direction.Up:
       return Direction.Down;
     case Direction.Down:
@@ -65,6 +72,6 @@ export function getOppositeFace(face: Direction): Direction {
     case Direction.West:
       return Direction.East;
     default:
-      return face;
+      return direction;
   }
 }

@@ -5,19 +5,19 @@ export interface DirectionData {
   vector: Vector3;
   /** XZで正規化されたVector3 (yは0、長さは1 ※ゼロ時は0) */
   normalizedXZ: Vector3;
-  /** 水平方向(XZ平面)の大きさ */
-  xzHypot: number;
+  /** 水平方向(XZ平面)の長さ・ノルム */
+  horizontalLength: number;
 }
 
-function calcData(vector: Vector3): DirectionData {
-  const xzHypot = Math.hypot(vector.x, vector.z);
+function createDirectionData(vector: Vector3): DirectionData {
+  const horizontalLength = Math.hypot(vector.x, vector.z);
   return {
     vector,
     normalizedXZ:
-      xzHypot > 1e-9
-        ? { x: vector.x / xzHypot, y: 0, z: vector.z / xzHypot }
+      horizontalLength > 1e-9
+        ? { x: vector.x / horizontalLength, y: 0, z: vector.z / horizontalLength }
         : { x: 0, y: 0, z: 0 },
-    xzHypot,
+    horizontalLength,
   };
 }
 
@@ -29,7 +29,7 @@ export class PlayerDirectionResolver {
   // --------------------------------------------------
   // クラス内部でのプレイヤー管理 (static)
   // --------------------------------------------------
-  private static instances = new Map<string, PlayerDirectionResolver>();
+  private static readonly instances = new Map<string, PlayerDirectionResolver>();
 
   static {
     // プレイヤー退出時に自動でMapから削除（メモリリーク防止）
@@ -89,7 +89,7 @@ export class PlayerDirectionResolver {
   public get movement(): DirectionData {
     this.checkTick();
     if (!this._movement) {
-      this._movement = calcData(this.player.getVelocity());
+      this._movement = createDirectionData(this.player.getVelocity());
     }
     return this._movement;
   }
@@ -100,7 +100,7 @@ export class PlayerDirectionResolver {
     if (!this._input) {
       const raw = this.player.inputInfo.getMovementVector();
       // Minecraft の raw.x は左が正(+)のため、反転して右を正(+)にする
-      this._input = calcData({ x: -raw.x, y: 0, z: raw.y });
+      this._input = createDirectionData({ x: -raw.x, y: 0, z: raw.y });
     }
     return this._input;
   }
@@ -115,7 +115,7 @@ export class PlayerDirectionResolver {
 
       // 入力がない場合はゼロベクトル
       if (Math.abs(raw.x) < 1e-5 && Math.abs(raw.y) < 1e-5) {
-        this._worldInput = calcData({ x: 0, y: 0, z: 0 });
+        this._worldInput = createDirectionData({ x: 0, y: 0, z: 0 });
       } else {
         // プレイヤーの水平角度 (Yaw) からワールドの前方・右方単位ベクトルを算出
         // ※真上・真下を向いていても水平角度は正確に取得できます
@@ -134,7 +134,7 @@ export class PlayerDirectionResolver {
         const worldX = forwardX * raw.y + rightX * strafeRight;
         const worldZ = forwardZ * raw.y + rightZ * strafeRight;
 
-        this._worldInput = calcData({ x: worldX, y: 0, z: worldZ });
+        this._worldInput = createDirectionData({ x: worldX, y: 0, z: worldZ });
       }
     }
     return this._worldInput;
@@ -144,7 +144,7 @@ export class PlayerDirectionResolver {
   public get view(): DirectionData {
     this.checkTick();
     if (!this._view) {
-      this._view = calcData(this.player.getViewDirection());
+      this._view = createDirectionData(this.player.getViewDirection());
     }
     return this._view;
   }

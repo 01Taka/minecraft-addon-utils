@@ -1,16 +1,19 @@
 import type { Vector3 } from "@minecraft/server";
 
-export type Vec2 = { x: number; z: number };
+/**
+ * XZ平面（水平方向）の2次元ベクトル
+ */
+export type VectorXZ = { x: number; z: number };
 
-/** 2次元AABB (XZ平面) */
+/** 2次元AABB (XZ平面バウンディングボックス) */
 export interface AABB2D {
   /** 最小点 (minX, minZ) */
-  min: Vec2;
+  min: VectorXZ;
   /** 最大点 (maxX, maxZ) */
-  max: Vec2;
+  max: VectorXZ;
 }
 
-/** 3次元AABB */
+/** 3次元AABB (直方体バウンディングボックス) */
 export interface AABB {
   min: Vector3;
   max: Vector3;
@@ -81,20 +84,20 @@ export function calculatePointToAABBDistance(
 /**
  * 水平ベクトルから最も近い面方向（東西南北）の単位ベクトルを返します。
  *
- * @param vec 水平方向ベクトル (x, z)
+ * @param vectorXZ 水平方向ベクトル (x, z)
  * @returns 最も近い面方向の単位Vector3
  */
-export function getNearestFaceDirection(vec: Vec2): Vector3 {
-  const absX = Math.abs(vec.x);
-  const absZ = Math.abs(vec.z);
+export function getNearestFaceDirectionVector(vectorXZ: VectorXZ): Vector3 {
+  const absX = Math.abs(vectorXZ.x);
+  const absZ = Math.abs(vectorXZ.z);
 
   if (absX === 0 && absZ === 0) {
     return { x: 0, y: 0, z: 0 };
   }
 
   if (absX >= absZ) {
-    return { x: Math.sign(vec.x), y: 0, z: 0 };
+    return { x: Math.sign(vectorXZ.x), y: 0, z: 0 };
   } else {
-    return { x: 0, y: 0, z: Math.sign(vec.z) };
+    return { x: 0, y: 0, z: Math.sign(vectorXZ.z) };
   }
 }

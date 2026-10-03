@@ -26,16 +26,16 @@ export class PlayerStateManager {
   }
 
   /**
-   * プレイヤーの状態を取得します。未設定の場合はデフォルト値（fallback）を返します。
+   * プレイヤーの状態を取得します。未設定の場合はデフォルト値（defaultValue）を返します。
    *
    * @param playerId プレイヤーID (player.id)
    * @param key 管理キー名
-   * @param fallback 値が存在しない場合のデフォルト値
+   * @param defaultValue 値が存在しない場合のデフォルト値
    */
-  public static get<T>(playerId: string, key: string, fallback: T): T {
+  public static get<T>(playerId: string, key: string, defaultValue: T): T {
     const playerMap = this.state.get(playerId);
     if (!playerMap || !playerMap.has(key)) {
-      return fallback;
+      return defaultValue;
     }
     return playerMap.get(key) as T;
   }
