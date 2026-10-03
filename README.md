@@ -21,9 +21,15 @@ Minecraft Bedrock Script API 開発用 汎用ユーティリティ & クラス�
 ```json
 {
   "dependencies": {
-    "addon-utils": "git+file:../addon-utils#v0.1.0"
+    "addon-utils": "github:01Taka/minecraft-addon-utils#v0.1.0"
   }
 }
+```
+
+または：
+
+```bash
+pnpm add github:01Taka/minecraft-addon-utils#v0.1.0
 ```
 
 パッケージルートからインポートして利用します：
